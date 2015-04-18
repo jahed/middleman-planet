@@ -17,9 +17,7 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  # The version of middleman-core your extension depends on
-  s.add_runtime_dependency("middleman-core", ["~> 3.3"])
-
-  # Additional dependencies
-  # s.add_runtime_dependency("gem-name", "gem-version")
+  s.add_runtime_dependency("middleman-core", "~> 3.3")
+  s.add_runtime_dependency("feedjira", "~> 1.6")
+  s.add_runtime_dependency("colorize")
 end

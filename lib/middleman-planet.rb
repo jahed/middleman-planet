@@ -1,38 +1,62 @@
-# Require core library
 require 'middleman-core'
 
-# Extension namespace
-class MyExtension < ::Middleman::Extension
-  option :my_option, 'default', 'An example option'
+class PlanetExtension < ::Middleman::Extension
+  option :feeds, {}, 'A mapping of keys to feeds to aggregate'
+  option :fail_on_feed_error, true, 'Whether to fail when a feed has an error'
 
   def initialize(app, options_hash={}, &block)
-    # Call super to build options from the options_hash
     super
 
-    # Require libraries only when activated
-    # require 'necessary/library'
-
-    # set up your extension
-    # puts options.my_option
+    require 'colorize'
+    require 'feedjira'
   end
 
   def after_configuration
-    # Do something
+    feeds = options.feeds
+    entries = []
+
+    urls = []
+    url_to_key_hash = {}
+    feeds.each { |key, feed|
+      url = feed[:url]
+      urls << url
+      url_to_key_hash[url] = key
+    }
+
+    errors = {}
+    Feedjira::Feed.fetch_and_parse urls,
+      on_success: lambda { |url, feed|
+        key = url_to_key_hash[url]
+        feeds[key][:feed] = feed
+
+        entries.push(feeds[key][:limit] ? feed.entries.take(feeds[key][:limit]) : feed.entries)
+
+        puts "[planet][feeds.#{url_to_key_hash[url]}] Retrieved #{feed.entries.size} entries."
+      },
+      on_failure: lambda { |curl, err|
+        errors[curl] = err
+        feeds.delete(url_to_key_hash[curl.url])
+        puts "[planet][feeds.#{url_to_key_hash[curl.url]}] #{err} (HTTP Response #{curl.response_code})".red
+      }
+
+    if not errors.empty? and options.fail_on_feed_error
+      raise (
+        "\n" +
+        "\n  middleman-planet failed to retrieve #{errors.size} feeds" +
+        "\n    - Use the `planet.fail_on_feed_error = false` option to ignore these." +
+        "\n"
+      ).red
+    end
+
+    puts "[planet] Aggregated #{entries.size} entries from #{feeds.size} feeds.".green
+
+    planet = {
+      entries: entries,
+      feeds: feeds
+    }
+    app.set :feeds, feeds
   end
 
-  # A Sitemap Manipulator
-  # def manipulate_resource_list(resources)
-  # end
-
-  # module do
-  #   def a_helper
-  #   end
-  # end
 end
 
-# Register extensions which can be activated
-# Make sure we have the version of Middleman we expect
-# Name param may be omited, it will default to underscored
-# version of class name
-
-# MyExtension.register(:my_extension)
+PlanetExtension.register(:planet)
