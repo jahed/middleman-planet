@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.homepage    = "http://github.com/jahed/middleman-planet"
   s.summary     = %q{Feed Aggregator Extension for Middleman}
   s.description = %q{Feed Aggregator Extension for Middleman. Insprited by Planet.}
+  s.license     = "MIT"
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
